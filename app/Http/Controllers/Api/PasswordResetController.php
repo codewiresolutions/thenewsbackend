@@ -17,7 +17,7 @@ class PasswordResetController extends Controller
 {
     public function send_reset_password_email(Request $request){
         $request->validate([
-            'email' => 'required|email',
+            'email' => 'required',
         ]);
         $email = $request->email;
 
@@ -31,7 +31,7 @@ class PasswordResetController extends Controller
         }
 
         // Generate Token
-        $token = Str::random(60);
+        $token = Str::random(10);
 
         // Saving Data to Password Reset Table
         PasswordReset::create([
@@ -53,7 +53,7 @@ class PasswordResetController extends Controller
 
     public function reset(Request $request, $token){
         // Delete Token older than 2 minute
-        $formatted = Carbon::now()->subMinutes(2)->toDateTimeString();
+        $formatted = Carbon::now()->subMinutes(20)->toDateTimeString();
         PasswordReset::where('created_at', '<=', $formatted)->delete();
 
         $request->validate([
