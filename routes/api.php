@@ -36,7 +36,7 @@ Route::delete('posts/{id}', [PostController::class, 'destroy']); // Delete a pos
 Route::post('/register', [AuthController::class, 'register']); // User registration
 Route::post('/login', [AuthController::class, 'login']);       // User login
 Route::post('/send-reset-password-email', [PasswordResetController::class, 'send_reset_password_email']);
-Route::post('/reset-password/{token}', [PasswordResetController::class, 'reset']);
+Route::post('/reset-password/{otp}', [PasswordResetController::class, 'reset']);
 
 // Protected Routes (require authentication)
 Route::middleware('auth:sanctum')->group(function () {
