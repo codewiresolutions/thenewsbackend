@@ -1,72 +1,86 @@
 <?php
 
-namespace App\Http\Controllers\Api; // Correct namespace
+namespace App\Http\Controllers\Api;
 
+use Carbon\Carbon;
 use App\Models\Post;
 use App\Models\Category;
+use App\Models\Tag;
 use Illuminate\Http\Request;
 use App\Http\Controllers\Controller;
 
 class PostController extends Controller
 {
-    // Show the list of posts (replacing the "index" method to return JSON)
+    // Show the list of posts (with search and category filters)
     public function index(Request $request)
     {
-        // Get the search term and category filter (now using category name)
-        $query = $request->input('query');         // Search term for title and description
-        $categoryName = $request->input('category_name');  // Category name filter
-    
-        // Build the query with search and optional category name filter
-        $postsQuery = Post::query()
-            ->when($query, function($queryBuilder) use ($query) {
-                // Search in title and description fields
-                return $queryBuilder->where('title', 'like', "%$query%")
-                                     ->orWhere('description', 'like', "%$query%");
-            })
-            ->when($categoryName, function($queryBuilder) use ($categoryName) {
-                // Join posts with categories and filter by category name
-                return $queryBuilder->whereHas('category', function($query) use ($categoryName) {
-                    $query->where('name', 'like', "%$categoryName%");  // Assuming 'name' is the category name field
-                });
-            });
-    
-        // Retrieve the posts (without pagination for now, you can use paginate() if needed)
-        $posts = $postsQuery->get();
-    
-        // Return the posts data as a JSON response
-        return response()->json([
-            'posts' => $posts
-        ]);
-    }
-    
-    
+        $query = $request->input('query'); // Search term for title and description
+        $categoryName = $request->input('category_name'); // Category name filter
+        $filter = $request->input('filter'); // Optional filter: 'last_month', 'current_month', 'last_year'
 
-    // Show the form for creating a new post (This is a typical form, so no change required)
-    public function create()
-    {
-        $categories = Category::all(); // Get all categories
-        return response()->json($categories); // Return categories as JSON response
+        $postsQuery = Post::query()
+            ->when($query, function ($queryBuilder) use ($query) {
+                return $queryBuilder->where('title', 'like', "%$query%")
+                    ->orWhere('description', 'like', "%$query%");
+            })
+            ->when($categoryName, function ($queryBuilder) use ($categoryName) {
+                return $queryBuilder->whereHas('category', function ($query) use ($categoryName) {
+                    $query->where('name', 'like', "%$categoryName%");
+                });
+            })
+            ->when($filter, function ($queryBuilder) use ($filter) {
+                $date = Carbon::now();
+
+                switch ($filter) {
+                    case 'last_month':
+                        $startOfLastMonth = $date->copy()->subMonth()->startOfMonth();
+                        $endOfLastMonth = $date->copy()->subMonth()->endOfMonth();
+                        return $queryBuilder->whereBetween('created_at', [$startOfLastMonth, $endOfLastMonth]);
+
+                    case 'current_month':
+                        $startOfCurrentMonth = $date->copy()->startOfMonth();
+                        $endOfCurrentMonth = $date->copy()->endOfMonth();
+                        return $queryBuilder->whereBetween('created_at', [$startOfCurrentMonth, $endOfCurrentMonth]);
+
+                    case 'last_year':
+                        $startOfLastYear = $date->copy()->subYear()->startOfYear();
+                        $endOfLastYear = $date->copy()->subYear()->endOfYear();
+                        return $queryBuilder->whereBetween('created_at', [$startOfLastYear, $endOfLastYear]);
+
+                    default:
+                        return $queryBuilder;
+                }
+            });
+
+        $posts = $postsQuery->get();
+
+        return response()->json(['posts' => $posts]);
     }
 
     // Store a newly created post in the database
     public function store(Request $request)
     {
+        // Log the incoming request data to check what is being sent
+        \Log::info('Request Data:', $request->all());
+
         // Validate the incoming request
         $validated = $request->validate([
             'title' => 'required|string|max:255',
             'category_id' => 'required|exists:categories,id',
             'description' => 'required|string',
-            'image' => 'nullable|image|mimes:jpeg,png,jpg,gif,svg|max:2048',  // Validate image
-            'video' => 'nullable|mimes:mp4,avi,mkv|max:20480',  // Validate video file types and size
+            'image' => 'nullable|image|mimes:jpeg,png,jpg,gif,svg|max:2048',
+            'video' => 'nullable|mimes:mp4,avi,mkv|max:20480',
             'status' => 'required|boolean',
+            'tags' => 'nullable|array',  // tags field should be an array
+            'tags.*' => 'exists:tags,id', // individual tag IDs should exist in the tags table
         ]);
 
-        // Handle image upload
+        // Handle image upload if exists
         if ($request->hasFile('image')) {
             $validated['image'] = $request->file('image')->store('images', 'public');
         }
 
-        // Handle video upload
+        // Handle video upload if exists
         if ($request->hasFile('video')) {
             $validated['video'] = $request->file('video')->store('videos', 'public');
         }
@@ -74,24 +88,28 @@ class PostController extends Controller
         // Create the post using the validated data
         $post = Post::create($validated);
 
+        // Attach tags to the post if tags are provided
+        if (!empty($validated['tags'])) {
+            $post->tags()->sync($validated['tags']);
+        }
+
         // Return the created post as JSON response with status code 201 (Created)
-        return response()->json($post, 201);
+        return response()->json($post->load('tags'), 201);
     }
 
     // Show a specific post by ID
     public function show($id)
     {
-        $post = Post::findOrFail($id); // Find post by ID
+        $post = Post::with('tags')->findOrFail($id); // Eager load tags
 
-        // Return the post data as a JSON response
         return response()->json($post);
     }
 
+    // Update an existing post
     public function update(Request $request, $id)
     {
-        // Debugging removed dd() call
-        $post = Post::findOrFail($id); // Find the post by its ID
-    
+        $post = Post::findOrFail($id);
+
         // Validate the incoming request
         $validated = $request->validate([
             'title' => 'required|string|max:255',
@@ -100,51 +118,51 @@ class PostController extends Controller
             'image' => 'nullable|image|mimes:jpeg,png,jpg,gif,svg',
             'video' => 'nullable|mimes:mp4,avi,mkv|max:20480',
             'status' => 'required|boolean',
+            'tags' => 'array|exists:tags,id' // Add this line to validate tags
         ]);
-    
+
         // Handle image upload (delete old image if exists)
         if ($request->hasFile('image')) {
             if ($post->image) {
-                \Storage::delete('public/' . $post->image); // Delete the old image
+                \Storage::delete('public/' . $post->image);
             }
             $validated['image'] = $request->file('image')->store('images', 'public');
         }
-    
+
         // Handle video upload (delete old video if exists)
         if ($request->hasFile('video')) {
             if ($post->video) {
-                \Storage::delete('public/' . $post->video); // Delete the old video
+                \Storage::delete('public/' . $post->video);
             }
             $validated['video'] = $request->file('video')->store('videos', 'public');
         }
-    
+
         // Update the post with validated data
         $post->update($validated);
-    
-        // Return the updated post as a JSON response
+
+        // Attach the tags to the post (many-to-many relationship)
+        if ($request->has('tags')) {
+            $post->tags()->sync($request->tags); // Sync the tags (attach new and detach removed)
+        }
+
         return response()->json($post);
     }
-    
 
     // Delete a post
     public function destroy($id)
     {
-        $post = Post::findOrFail($id); // Find the post by its ID
+        $post = Post::findOrFail($id);
 
-        // Delete the image file if it exists
         if ($post->image) {
             \Storage::delete('public/' . $post->image);
         }
 
-        // Delete the video file if it exists
         if ($post->video) {
             \Storage::delete('public/' . $post->video);
         }
 
-        // Delete the post
         $post->delete();
 
-        // Return a success message as JSON response
         return response()->json(['message' => 'Post deleted successfully']);
     }
 }

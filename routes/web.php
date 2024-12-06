@@ -3,10 +3,8 @@
 use Illuminate\Support\Facades\Route;
 use App\Http\Controllers\CategoryController;
 use App\Http\Controllers\PostController;
-
+use App\Http\Controllers\TagController;
 use Illuminate\Support\Facades\Auth;
-
-
 
 use App\Http\Controllers\Auth\AuthController;
 
@@ -37,3 +35,8 @@ Route::post('login', [AuthController::class, 'login']);
 Route::post('logout', [AuthController::class, 'logout'])->name('logout');
 Route::get('/register', [AuthController::class, 'showRegisterForm'])->name('register');
 Route::post('/register', [AuthController::class, 'register']);
+
+
+
+// Register all routes for the Tag resource
+Route::resource('tags', TagController::class);

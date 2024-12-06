@@ -40,7 +40,7 @@
             padding-right: 50px;
         }
 
-       
+
 
         .form-group {
             margin-bottom: 20px;
@@ -300,7 +300,7 @@
                 <i class="fas fa-arrow-left"></i> Back
             </a>
             <button type="submit" class="btn-update">
-                <i class="fas fa-save"></i> Update 
+                <i class="fas fa-save"></i> Update
             </button>
         </div>
     </form>

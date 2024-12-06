@@ -2,18 +2,24 @@
 
 namespace App\Models;
 
+use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 
 class Post extends Model
 {
-    // Fillable attributes for mass assignment
-    // app/Models/Post.php
-protected $fillable = ['title', 'category_id', 'description', 'image', 'video', 'status'];
+    use HasFactory;
 
+    protected $fillable = ['title', 'category_id', 'description', 'image', 'video', 'status', 'tag_id'];
 
-    // Relationship to Category (assuming you have a Category model)
+    // Relationship to Category
     public function category()
     {
         return $this->belongsTo(Category::class);
+    }
+
+    // Relationship to Tags
+    public function tags()
+    {
+        return $this->belongsToMany(Tag::class);
     }
 }

@@ -6,7 +6,10 @@ use App\Http\Controllers\Api\PostController;
 use App\Http\Controllers\Api\CategoryController;
 use App\Http\Controllers\Api\AuthController;
 use App\Http\Controllers\Api\PasswordResetController;
-
+use App\Http\Controllers\Api\TagController;
+use App\Http\Controllers\Api\ArticleController;
+use App\Http\Controllers\Api\AuthorController;
+use App\Http\Controllers\Api\AdvertisementController;
 
 Route::get('/user', function (Request $request) {
     return $request->user();
@@ -44,4 +47,48 @@ Route::middleware('auth:sanctum')->group(function () {
     Route::get('/logged-user', [AuthController::class, 'logged_user']); // User looged
     Route::get('/change-password', [AuthController::class, 'change_password']); // User logout
 
+
 });
+
+
+Route::get('tags', [TagController::class, 'index']); // Get all tags
+Route::post('tags', [TagController::class, 'store']); // Create a new tag
+Route::get('tags/{id}', [TagController::class, 'show']); // Get a specific tag by ID
+Route::put('tags/{id}', [TagController::class, 'update']); // Update a specific tag by ID
+Route::delete('tags/{id}', [TagController::class, 'destroy']); // Delete a specific tag by ID
+
+
+
+
+
+
+
+
+
+
+Route::post('advertisements', [AdvertisementController::class, 'store']);
+Route::post('advertisements/{advertisement}', [AdvertisementController::class, 'update']);
+Route::delete('advertisements/{advertisement}', [AdvertisementController::class, 'destroy']);
+Route::get('advertisements', [AdvertisementController::class, 'index']);
+Route::get('advertisements/{advertisement}', [AdvertisementController::class, 'show']);
+
+
+
+
+Route::get('authors', [AuthorController::class, 'index']);
+Route::get('authors/{id}', [AuthorController::class, 'show']);
+Route::post('authors', [AuthorController::class, 'store']);
+Route::put('authors/{id}', [AuthorController::class, 'update']);
+Route::delete('authors/{id}', [AuthorController::class, 'destroy']);
+
+
+
+
+
+// Separate route definitions
+Route::get('articles', [ArticleController::class, 'index']); // List all articles
+Route::get('articles/{id}', [ArticleController::class, 'show']); // Show a single article
+Route::post('articlesstore', [ArticleController::class, 'store']);
+
+Route::put('articles/{id}', [ArticleController::class, 'update']); // Update an existing article
+Route::delete('articles/{id}', [ArticleController::class, 'destroy']); // Delete an article
