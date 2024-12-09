@@ -9,7 +9,7 @@ use Illuminate\Http\Request;
 
 class PostController extends Controller
 {
-    // This method will show all posts, with an optional filter by category and search by title or description
+    // This method will show all posts, with an optional filter by category and search by title or descriphjyuyuuyyyygygyggggygyhtion
     public function index(Request $request)
     {
         $query = $request->input('query'); // Search term for title and description
